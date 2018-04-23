@@ -1,0 +1,365 @@
+#install.packages("relaimpo")
+#library(relaimpo)
+install.packages("forecast")
+install.packages("rlang")
+library(rlang)
+library(forecast)
+install.packages("ggplot2")
+library(ggplot2)
+
+#base data set with historical price of gold, value of gold volatility index, difference between 10 year and two year rates, value of SP 500, and value of the DXY
+data2<-read.csv("gold_model2.csv")
+head(data2)
+
+##Base regression model
+#train base model on hitorical data frame as outlined above###
+
+model2 <- lm(Gold_Price ~ Gold_Vol + T10Y2Y + SP500 + DXY, data=data2)
+summary(model2)
+
+#check to ensure model scoring correctly#
+relimp<-calc.relimp(model2,type=c("lmg","last","first","pratt"),rela=TRUE)
+plot(relimp)
+
+
+
+
+
+#######################Gold_Vol#####################################################################################
+
+
+###################ARIMA#################
+
+
+gold_vol_arima<-scan("Gold_Vol.csv")
+gold_vol_arima_timeseries<-ts(gold_vol_arima, start=c(6/3/2008), frequency=200)
+
+plot(gold_vol_arima_timeseries, main="GOLD Volatility ARIMA FORECAST", ylab="Gold Volatility")
+gold_vol_arima_timeseries_arima<-auto.arima(gold_vol_arima_timeseries)
+gold_vol_arima_timeseries_arima
+autoplot(gold_vol_arima_timeseries_arima)
+
+dec_vol<-decompose(gold_vol_arima_timeseries)
+plot(dec_vol)
+
+
+gold_vol_arima_timeseries_forecasts<-forecast(gold_vol_arima_timeseries_arima, h=200)
+gold_vol_arima_timeseries_forecasts
+plot(gold_vol_arima_timeseries_forecasts)
+
+goldvoldiff<-diff(gold_vol_arima_timeseries, differences=3)
+acf(goldvoldiff1, lag.max=20, main="Lag of model differences")
+acf(goldvoldiff1, lag.max=20, plot=FALSE)
+plot.ts(goldvoldiff1, main="Plot of Differeneces")
+##plot.forecast(gold_vol_arima_timeseries_forecasts, xlab='Gold Vol Forecast', main="Gold Vol FORECAST", ylab="Gold Price",col="orange", shadecols =c("red", "orange"))
+autoplot(gold_vol_arima_timeseries_forecasts, xlab='Gold Vol Forecast', main="Gold Vol FORECAST", ylab="Gold Price",col="orange", shadecols =c("red", "orange"))
+
+##############NNET########################
+
+
+model_vol<-scan("Gold_Vol.csv")
+fit_vol<-nnetar(model_vol)
+finalfit_vol<-forecast(fit_vol, h=200)
+finalfit_vol
+plot(finalfit_vol)
+plot(forecast(finalfit_vol))
+
+
+
+################HW######################
+
+vol_hw_data<-scan("Gold_Vol.csv")
+vol_hw_ts<-ts(vol_hw_data, start=c(6/3/2008), frequency=365)
+gold_vol_forecast<-HoltWinters(vol_hw_ts)
+gold_vol_forecast
+vol_coeffs<-coefficients(gold_vol_forecast)
+plot(forecast(gold_vol_forecast,200), main="Holt Winters Volatility Forecast", xaxt="n", col="red", ylab="volatility index")
+points(gold_vol_forecast, col="blue", bg="red", pch=23)
+final_vol<-forecast(gold_vol_forecast, h=200)
+plot(final_vol)
+autoplot(final_vol, shadecols=c("red", "orange"))
+final_vol
+
+
+###########################################Volatility frame
+volframe1<-data.frame(finalfit_vol)
+volframe2<-data.frame(gold_vol_arima_timeseries_forecasts)
+volframe3<-data.frame(final_vol)
+volframe4<-data.frame(volframe1$Point.Forecast, volframe2$Point.Forecast, volframe3$Point.Forecast)
+colnames(volframe4)<-c("NNET", "ARIMA", "HW")
+head(volframe4)
+colMeans(volframe4)
+volmean<-rowMeans(volframe4)
+volmean
+
+
+
+
+#################################T10Y2Y############################################################################
+
+
+###################ARIMA#################
+
+
+gold_TEN_arima<-scan("TEN.csv")
+gold_TEN_arima_timeseries<-ts(gold_TEN_arima, start=c(6/3/2008), frequency=200)
+
+plot(gold_TEN_arima_timeseries, main="GOLD Ten Year Minus Two Year ARIMA FORECAST", ylab="Ten year minus two year")
+gold_TEN_arima_timeseries_arima<-auto.arima(gold_TEN_arima_timeseries)
+gold_TEN_arima_timeseries_arima
+autoplot(gold_TEN_arima_timeseries_arima)
+
+dec_TEN<-decompose(gold_TEN_arima_timeseries)
+plot(TEN_vol)
+
+
+gold_TEN_arima_timeseries_forecasts<-forecast(gold_TEN_arima_timeseries_arima, h=200)
+gold_TEN_arima_timeseries_forecasts
+plot(gold_TEN_arima_timeseries_forecasts)
+
+goldTENdiff1<-diff(gold_TEN_arima_timeseries, differences=3)
+acf(goldTENdiff1, lag.max=20, main="Lag of model differences")
+acf(goldTENdiff1, lag.max=20, plot=FALSE)
+plot.ts(goldTENdiff1, main="Plot of Differeneces")
+##plot.forecast(gold_vol_arima_timeseries_forecasts, xlab='Gold Vol Forecast', main="Gold Vol FORECAST", ylab="Gold Price",col="orange", shadecols =c("red", "orange"))
+autoplot(gold_TEN_arima_timeseries_forecasts, xlab='Ten Year Minus Two Year Forecast', main="Ten Year Minus Two Year FORECAST", ylab="Ten Year Minus Two Year",col="orange", shadecols =c("red", "orange"))
+
+##############NNET########################
+
+
+model_TEN<-scan("TEN.csv")
+fit_TEN<-nnetar(model_TEN)
+finalfit_TEN<-forecast(fit_TEN, h=200)
+finalfit_TEN
+plot(finalfit_TEN)
+plot(forecast(finalfit_TEN))
+
+finalfit_TEN
+
+################HW######################
+
+TEN_hw_data<-scan("TEN.csv")
+TEN_hw_ts<-ts(TEN_hw_data, start=c(6/3/2008), frequency=200)
+gold_TEN_forecast<-HoltWinters(TEN_hw_ts)
+gold_TEN_forecast
+TEN_coeffs<-coefficients(gold_TEN_forecast)
+plot(forecast(gold_TEN_forecast,200), main="Holt Winters Ten year minus two year Forecast", xaxt="n", col="red", ylab="Ten Year Minus Two Year index")
+points(gold_TEN_forecast, col="blue", bg="red", pch=23)
+final_TEN<-forecast(gold_TEN_forecast, h=200)
+plot(final_TEN)
+autoplot(final_TEN, shadecols=c("red", "orange"))
+final_TEN
+
+
+########################################################ten year frame
+tenframe1<-data.frame(final_TEN)
+tenframe2<-data.frame(gold_TEN_arima_timeseries_forecasts)
+tenframe3<-data.frame(finalfit_TEN)
+tenframe4<-data.frame(tenframe1$Point.Forecast, tenframe2$Point.Forecast, tenframe3$Point.Forecast)
+colnames(tenframe4)<-c("NNET", "ARIMA", "HW")
+head(tenframe4)
+colMeans(tenframe4)
+TENmean<-rowMeans(tenframe4)
+TENmean
+
+
+
+#############################################################SPFive#################################################
+
+###################ARIMA#################
+
+
+gold_Five_arima<-scan("Five.csv")
+gold_Five_arima_timeseries<-ts(gold_Five_arima, start=c(6/3/2008), frequency=200)
+
+plot(gold_Five_arima_timeseries, main="SP 500 forecast", ylab="SP 500")
+gold_Five_arima_timeseries_arima<-auto.arima(gold_Five_arima_timeseries)
+gold_Five_arima_timeseries_arima
+autoplot(gold_Five_arima_timeseries_arima)
+
+dec_Five<-decompose(gold_Five_arima_timeseries)
+plot(Five_vol)
+
+
+gold_Five_arima_timeseries_forecasts<-forecast(gold_Five_arima_timeseries_arima, h=200)
+gold_Five_arima_timeseries_forecasts
+plot(gold_Five_arima_timeseries_forecasts)
+
+goldFivediff1<-diff(gold_Five_arima_timeseries, differences=3)
+acf(goldFivediff1, lag.max=20, main="Lag of model differences")
+acf(goldFivediff1, lag.max=20, plot=FALSE)
+plot.ts(goldFivediff1, main="Plot of Differeneces")
+##plot.forecast(gold_vol_arima_timeseries_forecasts, xlab='Gold Vol Forecast', main="Gold Vol FORECAST", ylab="Gold Price",col="orange", shadecols =c("red", "orange"))
+autoplot(gold_Five_arima_timeseries_forecasts, xlab='SP 500', main="SP 500 forecast", ylab="SP 500 forecast",col="orange", shadecols =c("red", "orange"))
+
+##############NNET########################
+
+
+model_Five<-scan("Five.csv")
+fit_Five<-nnetar(model_Five)
+finalfit_Five<-forecast(fit_Five, h=200)
+finalfit_Five
+plot(finalfit_Five)
+plot(forecast(finalfit_Five))
+
+
+
+################HW######################
+
+Five_hw_data<-scan("Five.csv")
+Five_hw_ts<-ts(Five_hw_data, start=c(6/3/2008), frequency=200)
+gold_Five_forecast<-HoltWinters(Five_hw_ts)
+gold_Five_forecast
+Five_coeffs<-coefficients(gold_Five_forecast)
+plot(forecast(gold_Five_forecast,200), main="SP 500 forecast", xaxt="n", col="red", ylab="SP 500 forecast")
+points(gold_Five_forecast, col="blue", bg="red", pch=23)
+final_Five<-forecast(gold_Five_forecast, h=200)
+plot(final_Five)
+autoplot(final_Five, shadecols=c("red", "orange"))
+final_Five
+
+
+######################################################################FiveFrame
+
+
+fiveframe1<-data.frame(final_Five)
+fiveframe2<-data.frame(gold_Five_arima_timeseries_forecasts)
+fiveframe3<-data.frame(finalfit_Five)
+fiveframe4<-data.frame(fiveframe1$Point.Forecast, fiveframe2$Point.Forecast, fiveframe3$Point.Forecast)
+colnames(fiveframe4)<-c("NNET", "ARIMA", "HW")
+head(fiveframe4)
+colMeans(fiveframe4)
+fivemean<-rowMeans(fiveframe4)
+fivemean
+
+
+
+##########################################################DXY#################################################
+
+###################ARIMA#################
+
+
+gold_DXY_arima<-scan("DXY.csv")
+gold_DXY_arima_timeseries<-ts(gold_DXY_arima, start=c(6/3/2008), frequency=200)
+
+plot(gold_DXY_arima_timeseries, main="DXY forecast", ylab="DXY")
+gold_DXY_timeseries_arima<-auto.arima(gold_DXY_arima_timeseries)
+gold_DXY_arima_timeseries_arima
+autoplot(gold_DXY_timeseries_arima)
+
+dec_DXY<-decompose(gold_DXY_arima_timeseries)
+plot(dec_DXY)
+
+
+gold_DXY_arima_timeseries_forecasts<-forecast(gold_DXY_timeseries_arima, h=200)
+gold_DXY_arima_timeseries_forecasts
+plot(gold_DXY_arima_timeseries_forecasts)
+
+goldDXYdiff1<-diff(gold_DXY_arima_timeseries, differences=3)
+acf(goldDXYdiff1, lag.max=20, main="Lag of model differences")
+acf(goldDXYdiff1, lag.max=20, plot=FALSE)
+plot.ts(goldDXYdiff1, main="Plot of Differeneces")
+##plot.forecast(gold_vol_arima_timeseries_forecasts, xlab='Gold Vol Forecast', main="Gold Vol FORECAST", ylab="Gold Price",col="orange", shadecols =c("red", "orange"))
+autoplot(gold_DXY_arima_timeseries_forecasts, xlab='SP 500', main="DXY forecast", ylab="DXY forecast",col="orange", shadecols =c("red", "orange"))
+
+##############NNET########################
+
+
+model_DXY<-scan("DXY.csv")
+fit_DXY<-nnetar(model_DXY)
+finalfit_DXY<-forecast(fit_DXY, h=200)
+finalfit_DXY
+plot(finalfit_DXY)
+plot(forecast(finalfit_DXY))
+
+
+
+################HW######################
+
+DXY_hw_data<-scan("DXY.csv")
+DXY_hw_ts<-ts(DXY_hw_data, start=c(6/3/2008), frequency=200)
+gold_DXY_forecast<-HoltWinters(DXY_hw_ts)
+gold_DXY_forecast
+DXY_coeffs<-coefficients(gold_DXY_forecast)
+plot(forecast(gold_DXY_forecast,200), main="DXY forecast", xaxt="n", col="red", ylab="DXY forecast")
+points(gold_DXY_forecast, col="blue", bg="red", pch=23)
+final_DXY<-forecast(gold_DXY_forecast, h=200)
+plot(final_DXY)
+autoplot(final_DXY, shadecols=c("red", "orange"))
+final_DXY
+
+
+######################################################################FiveFrame
+
+
+DXYframe1<-data.frame(final_DXY)
+DXYframe2<-data.frame(gold_DXY_arima_timeseries_forecasts)
+DXYframe3<-data.frame(finalfit_DXY)
+DXYframe4<-data.frame(DXYframe1$Point.Forecast, DXYframe2$Point.Forecast, DXYframe3$Point.Forecast)
+colnames(DXYframe4)<-c("NNET", "ARIMA", "HW")
+head(DXYframe4)
+colMeans(DXYframe4)
+DXYmean<-rowMeans(DXYframe4)
+DXYmean
+
+
+########################################Gold Price NNET & ARIMA ####################################################
+
+price_model<-scan("gold_price.csv")
+price_fit<-nnetar(price_model)
+price_finalfit<-forecast(price_fit, h=200)
+price_finalfit
+plot(price_finalfit)
+plot(forecast(price_finalfit))
+
+gold_price_arima<-scan("gold_price.csv")
+gold_price_arima_timeseries<-ts(gold_price_arima, start=c(6/3/2008), frequency=200)
+
+plot(gold_price_arima_timeseries, main="GOLD Price FORECAST", ylab="Gold Price")
+gold_price_arima_timeseries_arima<-auto.arima(gold_price_arima_timeseries)
+gold_price_arima_timeseries_arima
+autoplot(gold_price_arima_timeseries_arima)
+
+dec_price<-decompose(gold_price_arima_timeseries)
+plot(dec_price)
+
+
+gold_price_arima_timeseries_forecasts<-forecast(gold_price_arima_timeseries_arima, h=200)
+gold_price_arima_timeseries_forecasts
+plot(gold_price_arima_timeseries_forecasts)
+
+goldpricediff1<-diff(gold_price_arima_timeseries, differences=3)
+acf(goldpricediff1, lag.max=20, main="Lag of model differences")
+acf(goldpricediff1, lag.max=20, plot=FALSE)
+plot.ts(goldpricediff1, main="Plot of Differeneces")
+##plot.forecast(gold_vol_arima_timeseries_forecasts, xlab='Gold Vol Forecast', main="Gold Vol FORECAST", ylab="Gold Price",col="orange", shadecols =c("red", "orange"))
+autoplot(gold_price_arima_timeseries_forecasts, xlab='Gold Price Forecast', main="Gold Price FORECAST", ylab="Gold Price",col="orange", shadecols =c("red", "orange"))
+
+priceframe1<-data.frame(price_finalfit)
+priceframe2<-data.frame(gold_price_arima_timeseries_forecasts)
+priceframe3<-data.frame(priceframe1$Point.Forecast, priceframe2$Point.Forecast)
+colnames(priceframe3)<-c("NNET", "ARIMA")
+head(priceframe3)
+colMeans(priceframe3)
+pricedailymean<-rowMeans(priceframe3)
+pricedailymean
+
+daily_price_model<-data.frame(pricedailymean)
+head(daily_price_model)
+
+
+
+
+###############################FINAL Exteral IMpacts MODEL############################################################################
+
+finalFrame<-data.frame(fivemean, TENmean, volmean, DXYmean)
+colnames(finalFrame)<-c("SP500", "T10Y2Y", "Gold_Vol", "DXY")
+finalmodel<-forecast(model2, newdata=finalFrame, h=200)
+TheEnd<-data.frame(finalmodel)
+LastFrame<-data.frame(TheEnd$Point.Forecast)
+colnames(LastFrame)<-c("model_forecast")
+
+conclusion<-data.frame(LastFrame, daily_price_model)
+head(conclusion)
+final_prediction<-rowMeans(conclusion)
+plot(final_prediction, type="o", col="blue", xlab="Days", ylab="Price of Gold", main="200 Day Gold Price Forecast")
